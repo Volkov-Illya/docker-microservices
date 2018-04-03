@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Users</title>
+    <style>
+        #matches {
+            position: absolute;
+            top: 0;
+            right: 100px;
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <div style="width: 50%; float: left">
+        <h1>Create users</h1>
+        <form onsubmit="return API.saveUser()">
+            <input id="username" type="text">
+            <input type="submit" value="submit">
+        </form>
+        <ul id="users"></ul>
+    </div>
+    <div style="width: 50%; float: right">
+        <div id="bookInput"></div>
+        <ul id="books"></ul>
+    </div>
+
+    <script>
+        const API = (() => {
+            const makeSaveFunc = (selector, postNameFunc) => () => {
+                try {
+                    const val = document.querySelector(selector).value;
+                    postNameFunc(val);
+                } catch (e) {
+                    console.log(e);
+                    console.log('--------------------------');
+                }
+                return false;
+            };
+
+            const makePostUserName = uri => val => {
+                fetch(uri, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: val
+                        }),
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(resp => {
+
+                        const input = document.querySelector("#username");
+                        input.value = '';
+                        getUsers();
+                        searchBooks()
+                    })
+
+            };
+
+            const makePostBookName = uri => val => {
+                fetch(uri, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: val,
+                            userId: userId
+                        }),
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(resp => {
+
+                        const input = document.querySelector("#username");
+                        input.value = '';
+                        getUsers();
+                        searchBooks()
+                    })
+
+            };
+
+            const getUserBooks = event => {
+
+                window.userId = event.getAttribute("data-id");
+
+                try {
+
+                    var url = new URL("http://localhost:8080/api/v1/books"),
+                        params = {
+                            userId: userId
+                        }
+
+                    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
+                    fetch(url)
+                        .then(resp => resp.json())
+                        .then(results => {
+
+                            const ul = document.querySelector("#books");
+                            ul.innerHTML = '';
+
+                            const bookInput = document.querySelector("#bookInput");
+                            const bookInputContent =
+                                `
+                                    <h1>Create books</h1>
+                                    <form onsubmit="return API.saveBook()">
+                                        <input id="bookname" type="text">
+                                        <input type="submit" value="submit">
+                                    </form>
+                                `;
+                            bookInput.innerHTML = bookInputContent
+
+                            results.forEach(data => {
+                                const books = data;
+                                const li = document.createElement("li");
+                                const liContent =
+                                    `<p  data-id="${data._id}">${data.name}</p>`;
+                                li.innerHTML = liContent;
+                                ul.appendChild(li);
+                            });
+
+                        })
+                } catch (e) {
+                    console.log(e);
+                    console.log('--------------------------');
+                }
+                return false;
+
+            };
+
+            const postUserName = makePostUserName("http://localhost:8080/api/v1/users");
+            const postBookName = makePostBookName("http://localhost:8080/api/v1/books");
+
+            const getUsers = () => {
+                try {
+                    fetch("http://localhost:8080/api/v1/users", {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(resp => resp.json())
+                        .then(results => {
+                            const ul = document.querySelector("#users");
+                            ul.innerHTML = '';
+                            results.forEach(data => {
+                                const users = data;
+                                const li = document.createElement("li");
+                                const liContent =
+                                    `<p style="cursor: pointer; text-decoration:underline" onclick="return API.getUserBooks(this)" data-id="${data._id}">${data.name}</p>`;
+                                li.innerHTML = liContent;
+                                ul.appendChild(li);
+                            });
+
+                        })
+                } catch (e) {
+                    console.log(e);
+                    console.log('--------------------------');
+                }
+                return false;
+            };
+
+            const searchBooks = () => {
+
+                try {
+
+                    var url = new URL("http://localhost:8080/api/v1/books"),
+                        params = {
+                            userId: userId
+                        }
+
+                    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
+                    fetch(url)
+                        .then(resp => resp.json())
+                        .then(results => {
+
+                            const ul = document.querySelector("#books");
+                            ul.innerHTML = '';
+
+                            const bookInput = document.querySelector("#bookInput");
+                            const bookInputContent =
+                                `
+                                    <h1>Create books</h1>
+                                    <form onsubmit="return API.saveBook()">
+                                        <input id="bookname" type="text">
+                                        <input type="submit" value="submit">
+                                    </form>
+                                `;
+                            bookInput.innerHTML = bookInputContent
+
+                            results.forEach(data => {
+                                const books = data;
+                                const li = document.createElement("li");
+                                const liContent =
+                                    `<p onclick="return API.getUserBooks(this)" data-id="${data._id}">${data.name}</p>`;
+                                li.innerHTML = liContent;
+                                ul.appendChild(li);
+                            });
+
+                        })
+                } catch (e) {
+                    console.log(e);
+                    console.log('--------------------------');
+                }
+                return false;
+
+            };
+
+            getUsers();
+            // window.userId = '';
+
+            return {
+                saveUser: makeSaveFunc("#username", postUserName),
+                saveBook: makeSaveFunc("#bookname", postBookName),
+                getUserBooks
+            }
+        })();
+    </script>
+
+</body>
+
+</html>
